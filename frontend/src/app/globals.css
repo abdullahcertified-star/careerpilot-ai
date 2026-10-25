@@ -1,26 +1,141 @@
 @import "tailwindcss";
 
+@theme {
+  --color-slate-950: #0B0B0C;
+  --color-slate-900: #121215;
+  --color-slate-850: #16161A;
+  --color-slate-800: #1A1A1F;
+  --color-slate-700: #26262D;
+  --color-slate-600: #383842;
+  --color-slate-400: #A1A1AA;
+  --color-slate-300: #D4D4D8;
+  --color-slate-200: #E4E4E7;
+  --color-slate-100: #F4F4F5;
+
+  --color-indigo-600: #0070F3;
+  --color-indigo-500: #1A80F8;
+  --color-indigo-400: #3291FF;
+  --color-indigo-300: #70B4FF;
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --background: #0B0B0C;
+  --foreground: #EDEDED;
+  --surface: #121215;
+  --border: #222227;
+  --accent-blue: #0070F3;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: #0B0B0C;
+  color: #EDEDED;
+  font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
+
+::selection {
+  background-color: #0070F3;
+  color: #FFFFFF;
+}
+
+/* Developer Tool Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0B0B0C;
+}
+::-webkit-scrollbar-thumb {
+  background: #222227;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #33333C;
+}
+
+/* High Visibility & Clean Form Inputs Across Whole App */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="url"],
+input[type="search"],
+select,
+textarea {
+  background-color: #121215;
+  border-color: #26262D;
+  color: #FFFFFF;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: #0070F3 !important;
+  outline: none !important;
+  box-shadow: 0 0 0 1px #0070F3 !important;
+}
+
+/* Developer Tool Surface & Sharp Edges Normalization */
+.rounded-3xl,
+.rounded-2xl {
+  border-radius: 6px !important;
+}
+
+.rounded-xl,
+.rounded-lg {
+  border-radius: 4px !important;
+}
+
+/* Eliminate bulky bubble pill tags except status indicator dots */
+.rounded-full:not([class*="w-1"]):not([class*="w-2"]):not([class*="w-3"]):not([class*="animate-spin"]) {
+  border-radius: 3px !important;
+}
+
+/* Uniform High-Contrast Surfaces */
+.bg-slate-900,
+.bg-slate-900\/90,
+.bg-slate-900\/80,
+.bg-slate-900\/60,
+.bg-slate-900\/50,
+.bg-slate-900\/40 {
+  background-color: #121215 !important;
+  border-color: #222227 !important;
+}
+
+.bg-slate-950,
+.bg-slate-950\/80,
+.bg-slate-950\/70 {
+  background-color: #0B0B0C !important;
+}
+
+.border-slate-800,
+.border-slate-800\/80,
+.border-slate-800\/60 {
+  border-color: #222227 !important;
+}
+
+/* High Visibility Headings & Labels */
+h1, h2, h3, h4, h5, h6 {
+  letter-spacing: -0.025em;
+}
+
+/* Card and container utilities */
+.tech-card {
+  background-color: #121215;
+  border: 1px solid #222227;
+  border-radius: 4px;
+}
+
+.tech-border {
+  border-color: #1F1F24;
+}
+
+.tech-border-subtle {
+  border-color: #16161A;
+}
+
+
+
