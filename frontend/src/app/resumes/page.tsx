@@ -213,18 +213,18 @@ export default function ResumesPage() {
       )}
 
       {/* CV Upload Dropzone Area */}
-      <div className="p-8 rounded-2xl bg-slate-900/60 border-2 border-dashed border-slate-700 hover:border-indigo-500/60 transition-colors text-center backdrop-blur-xl">
-        <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-indigo-500/10 text-indigo-400 mb-4 border border-indigo-500/20 shadow-md">
-          <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <div className="p-8 rounded-[6px] bg-[#121215] border border-dashed border-[#26262D] hover:border-[#0070F3]/60 transition-colors text-center">
+        <div className="inline-flex items-center justify-center w-12 h-12 rounded-[4px] bg-[#0070F3]/10 text-[#0070F3] mb-3 border border-[#0070F3]/30">
+          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
           </svg>
         </div>
-        <h3 className="text-base font-bold text-white">Upload Candidate CV</h3>
-        <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto">
+        <h3 className="text-base font-medium text-white">Upload Candidate CV</h3>
+        <p className="text-[13px] text-[#A1A1AA] mt-1 max-w-md mx-auto">
           Supported formats: PDF, DOCX, TXT. Files are validated for magic signatures, scanned for scripts, and stored securely.
         </p>
         <div className="mt-5">
-          <label className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs cursor-pointer transition-all shadow-lg shadow-indigo-600/25">
+          <label className="inline-flex items-center gap-2 px-5 py-2.5 rounded-[4px] bg-[#0070F3] hover:bg-[#0060DF] text-white font-medium text-xs cursor-pointer transition-all shadow-[0_0_12px_rgba(0,112,243,0.3)]">
             {uploading ? 'Validating & Uploading...' : 'Select CV File'}
             <input
               type="file"

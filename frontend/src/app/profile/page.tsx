@@ -264,9 +264,9 @@ export default function ProfilePage() {
           <button
             type="submit"
             disabled={saving}
-            className="px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-medium text-sm transition-colors shadow-sm"
+            className="px-5 py-2.5 rounded-[4px] bg-[#0070F3] hover:bg-[#0060DF] disabled:opacity-50 text-white font-medium text-xs transition-colors shadow-[0_0_12px_rgba(0,112,243,0.3)]"
           >
-            {saving ? 'Saving...' : 'Save Profile Changes'}
+            {saving ? 'Saving Profile...' : 'Save Profile Changes'}
           </button>
         </form>
       </div>
@@ -375,7 +375,7 @@ export default function ProfilePage() {
           <button
             type="submit"
             disabled={addingSkill}
-            className="px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-medium text-xs transition-colors shrink-0"
+            className="px-4 py-2 rounded-[4px] bg-[#0070F3] hover:bg-[#0060DF] disabled:opacity-50 text-white font-medium text-xs transition-colors shrink-0 shadow-[0_0_10px_rgba(0,112,243,0.3)]"
           >
             {addingSkill ? 'Adding...' : '+ Add Skill'}
           </button>

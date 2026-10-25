@@ -40,30 +40,53 @@ export default function Home() {
             Autonomous matching, deterministic fact extraction, and verifiable application tracking. Built with strict resource-level tenant isolation and zero-hallucination resume tailoring.
           </p>
 
-          <div className="flex flex-wrap items-center gap-5 pt-3">
+          <div className="flex flex-wrap items-center gap-4 pt-3">
             <Link
               href="/auth/register"
-              className="px-5 py-2.5 rounded-[3px] bg-[#161618] hover:bg-[#202024] text-white text-[13px] font-medium border border-[#2B2B30] transition-colors"
+              className="px-5 py-2.5 rounded-[4px] bg-[#0070F3] hover:bg-[#0060DF] text-white text-[13px] font-medium shadow-[0_0_15px_rgba(0,112,243,0.3)] transition-all flex items-center gap-2"
             >
-              Create Candidate Account
+              <span>Create Candidate Account</span>
+              <span aria-hidden="true">→</span>
             </Link>
 
             <Link
               href="/auth/login"
-              className="text-[13px] font-normal text-[#8E8E93] hover:text-white transition-colors flex items-center gap-1.5"
+              className="px-4 py-2.5 rounded-[4px] bg-[#16161B] hover:bg-[#202028] text-[#EDEDED] hover:text-white border border-[#2D2D36] hover:border-[#0070F3]/60 text-[13px] font-medium transition-all"
             >
-              <span>Sign In with Demo</span>
-              <span aria-hidden="true">→</span>
+              Sign In with Demo
             </Link>
-
-            <span className="text-[#2A2A2E] hidden sm:inline">|</span>
 
             <Link
-              href="/profile"
-              className="text-[13px] font-normal text-[#8E8E93] hover:text-white transition-colors"
+              href="/jobs"
+              className="text-[13px] font-normal text-[#A1A1AA] hover:text-[#0070F3] transition-colors flex items-center gap-1.5 px-2 py-1"
             >
-              Candidate Profile Editor
+              <span>Explore Engine Openings</span>
+              <span aria-hidden="true">↗</span>
             </Link>
+          </div>
+        </div>
+
+        {/* Platform Preview Visual */}
+        <div className="relative rounded-[6px] overflow-hidden border border-[#222227] bg-[#121215] shadow-2xl group">
+          <div className="flex items-center justify-between px-4 py-2.5 border-b border-[#1F1F24] bg-[#0E0E11] text-[11px] font-mono text-[#8E8E93]">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#26262D]" />
+              <span className="w-2.5 h-2.5 rounded-full bg-[#26262D]" />
+              <span className="w-2.5 h-2.5 rounded-full bg-[#26262D]" />
+              <span className="ml-2 text-[#A1A1AA]">careerpilot.ai/engine/radar</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#0070F3] shadow-[0_0_6px_rgba(0,112,243,0.8)]" />
+              <span className="text-[#0070F3] font-medium">LIVE AI RADAR</span>
+            </div>
+          </div>
+          <div className="relative aspect-[16/9] w-full overflow-hidden">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/images/hero-radar.jpg"
+              alt="CareerPilot AI Candidate Skills Radar & Opportunity Network"
+              className="w-full h-full object-cover object-top opacity-95 group-hover:opacity-100 transition-opacity duration-300"
+            />
           </div>
         </div>
 

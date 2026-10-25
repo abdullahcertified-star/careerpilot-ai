@@ -2,7 +2,6 @@
 
 import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import Navbar from '@/components/Navbar';
 import {
   api,
   DocumentVersionResponse,
@@ -250,34 +249,33 @@ function DocumentStudioInner() {
   const coverDraft = editableData as unknown as EditableCoverLetter;
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
-      <Navbar />
-
+    <div className="min-h-screen bg-[#0B0B0C] text-slate-100 flex flex-col font-sans">
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-6">
         {/* Header Bar */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#222227] pb-6">
           <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-3xl font-extrabold tracking-tight text-white">Document Studio</h1>
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-                Phase 5 Active
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="text-[11px] font-mono tracking-wider uppercase text-[#3291FF] bg-[#0070F3]/10 border border-[#0070F3]/30 px-2.5 py-0.5 rounded-[3px]">
+                Document Studio
               </span>
+              <span className="text-[12px] text-[#A1A1AA]">• Fact-Grounded Synthesis</span>
             </div>
-            <p className="text-slate-400 text-sm mt-1">
+            <h1 className="text-2xl sm:text-3xl font-medium tracking-tight text-white">Document Studio</h1>
+            <p className="text-[13px] text-[#A1A1AA] mt-1 max-w-3xl leading-relaxed">
               Job-specific resume and cover letter generation strictly grounded in verified candidate facts with zero fabrication.
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             <button
               onClick={() => setShowVersionHistory(!showVersionHistory)}
-              className="px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-2 border border-slate-700 transition"
+              className="px-3.5 py-2 rounded-[4px] bg-[#16161B] hover:bg-[#202028] text-[#EDEDED] hover:text-white text-xs font-medium flex items-center gap-2 border border-[#2D2D36] hover:border-[#0070F3]/60 transition"
               title="View immutable revision history"
             >
-              <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-3.5 h-3.5 text-[#0070F3]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <span>History ({versions.length} {versions.length === 1 ? 'version' : 'versions'})</span>
+              <span>History ({versions.length})</span>
             </button>
 
             {selectedDoc && (
@@ -285,10 +283,10 @@ function DocumentStudioInner() {
                 <button
                   onClick={() => handleDownload('docx')}
                   disabled={!!downloading}
-                  className="px-3.5 py-2 rounded-lg bg-blue-900/60 hover:bg-blue-800 text-blue-200 text-xs font-semibold flex items-center gap-2 border border-blue-700/50 transition disabled:opacity-50"
+                  className="px-3.5 py-2 rounded-[4px] bg-[#141418] hover:bg-[#1E1E24] text-[#EDEDED] hover:text-white text-xs font-medium flex items-center gap-2 border border-[#2B2B34] hover:border-[#0070F3]/60 transition disabled:opacity-50"
                   title="Download editable Microsoft Word document"
                 >
-                  <svg className="w-4 h-4 text-blue-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="w-3.5 h-3.5 text-[#3291FF]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                   </svg>
                   <span>{downloading === 'docx' ? 'Generating DOCX...' : 'Download DOCX'}</span>
@@ -297,10 +295,10 @@ function DocumentStudioInner() {
                 <button
                   onClick={() => handleDownload('pdf')}
                   disabled={!!downloading}
-                  className="px-3.5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center gap-2 shadow-lg shadow-indigo-600/20 transition disabled:opacity-50"
+                  className="px-3.5 py-2 rounded-[4px] bg-[#0070F3] hover:bg-[#0060DF] text-white text-xs font-medium flex items-center gap-2 shadow-[0_0_12px_rgba(0,112,243,0.3)] transition disabled:opacity-50"
                   title="Download text-selectable, ATS-friendly PDF"
                 >
-                  <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                   </svg>
                   <span>{downloading === 'pdf' ? 'Generating PDF...' : 'Download PDF'}</span>
@@ -748,14 +746,23 @@ function DocumentStudioInner() {
                 </div>
               </div>
             ) : (
-              <div className="h-full min-h-[400px] bg-slate-900/40 border border-dashed border-slate-800 rounded-2xl p-8 flex flex-col items-center justify-center text-center">
-                <svg className="w-12 h-12 text-slate-700 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                <h3 className="text-base font-bold text-slate-300">No Document Selected</h3>
-                <p className="text-xs text-slate-500 max-w-sm mt-1">
-                  Choose an existing document from your documents list on the left, or generate a tailored resume for any requisition.
+              <div className="h-full min-h-[420px] bg-[#121215] border border-[#222227] rounded-[6px] overflow-hidden flex flex-col items-center justify-center text-center p-6 space-y-4">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-[3px] bg-[#0070F3]/10 border border-[#0070F3]/30 text-[#3291FF] text-[11px] font-mono">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#0070F3] animate-pulse" />
+                  <span>Fact-Grounded Document Engine</span>
+                </div>
+                <h3 className="text-base font-medium text-white">No Document Selected</h3>
+                <p className="text-[13px] text-[#A1A1AA] max-w-md">
+                  Select a tailored resume or cover letter on the left to review verified grounding evidence, or generate a new tailored draft.
                 </p>
+                <div className="w-full max-w-lg rounded-[4px] overflow-hidden border border-[#1F1F24] opacity-85 hover:opacity-100 transition-opacity">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/images/document-studio.jpg"
+                    alt="Document Studio AI Resume and Cover Letter Tailoring Preview"
+                    className="w-full h-auto object-cover max-h-64"
+                  />
+                </div>
               </div>
             )}
           </div>

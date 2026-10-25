@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import Navbar from '@/components/Navbar';
 import MatchAnalysisModal from '@/components/MatchAnalysisModal';
 import MatchingPreferencesModal from '@/components/MatchingPreferencesModal';
 import {
@@ -294,23 +293,21 @@ export default function JobsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
-      <Navbar />
-
+    <div className="min-h-screen bg-[#0B0B0C] text-slate-100 flex flex-col">
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
         {/* Header Banner */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-800/80">
           <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-xs font-bold uppercase tracking-wider text-emerald-400 bg-emerald-950/60 border border-emerald-800/50 px-2 py-0.5 rounded">
-                Phase 4 Deterministic Engine
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="text-[11px] font-mono tracking-wider uppercase text-[#3291FF] bg-[#0070F3]/10 border border-[#0070F3]/30 px-2.5 py-0.5 rounded-[3px]">
+                Deterministic Matching Engine
               </span>
-              <span className="text-xs text-slate-400">• Transparent Explainable Matching &amp; Ranking</span>
+              <span className="text-[12px] text-[#A1A1AA]">• Transparent Explainable Ranking</span>
             </div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-white">
+            <h1 className="text-2xl sm:text-3xl font-medium tracking-tight text-white">
               Job Intelligence &amp; Matching Engine
             </h1>
-            <p className="text-sm text-slate-400 mt-1 max-w-3xl">
+            <p className="text-[13px] text-[#A1A1AA] mt-1 max-w-3xl leading-relaxed">
               Strictly deterministic evaluation: required skills (35%), role relevance (25%), experience (15%), education (10%), location &amp; work authorization (10%), and preferred skills (5%). Zero LLM score hallucination.
             </p>
           </div>
@@ -318,7 +315,7 @@ export default function JobsPage() {
           <div className="flex items-center gap-2.5">
             <button
               onClick={() => setShowPreferencesModal(true)}
-              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs transition-colors border border-slate-700"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[4px] bg-[#16161B] hover:bg-[#202028] text-[#EDEDED] hover:text-white font-medium text-xs transition-colors border border-[#2D2D36] hover:border-[#0070F3]/60"
             >
               ⚙ Preferences
             </button>
@@ -326,7 +323,7 @@ export default function JobsPage() {
             <button
               onClick={handleRecalculateAll}
               disabled={recalculating}
-              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-semibold text-xs transition-colors shadow-lg shadow-emerald-600/20"
+              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-[4px] bg-[#0070F3] hover:bg-[#0060DF] disabled:opacity-50 text-white font-medium text-xs transition-all shadow-[0_0_12px_rgba(0,112,243,0.3)]"
             >
               {recalculating ? (
                 <>
@@ -347,7 +344,7 @@ export default function JobsPage() {
                 setImportSuccess(null);
                 setShowImportModal(true);
               }}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition-colors shadow-lg shadow-indigo-600/20"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[4px] bg-[#141418] hover:bg-[#1E1E24] text-[#EDEDED] hover:text-white font-medium text-xs transition-colors border border-[#2B2B34] hover:border-[#0070F3]/60"
             >
               + Import URL
             </button>
@@ -528,36 +525,59 @@ export default function JobsPage() {
                 <button
                   type="button"
                   onClick={() => loadRankedMatches()}
-                  className="px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs transition-colors flex items-center gap-1"
+                  className="px-4 py-1.5 rounded-[4px] bg-[#0070F3] hover:bg-[#0060DF] text-white font-medium text-xs transition-colors flex items-center gap-1.5 shadow-sm"
                 >
-                  Apply Filters &amp; Sort
+                  <span>Apply Filters &amp; Sort</span>
                 </button>
               </div>
             </div>
 
             {/* Error state */}
             {matchesError && (
-              <div className="p-3.5 rounded-lg bg-red-950/50 border border-red-800 text-red-200 text-xs">
+              <div className="p-3.5 rounded-[4px] bg-red-950/30 border border-red-900/40 text-red-200 text-xs">
                 {matchesError}
               </div>
             )}
 
-            {/* Empty state */}
+            {/* Empty state with Visual Telemetry Preview */}
             {rankedMatches.length === 0 && !matchesLoading && (
-              <div className="p-12 text-center rounded-xl bg-slate-900/40 border border-slate-800 space-y-3">
-                <svg className="w-12 h-12 text-slate-600 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <h3 className="text-base font-bold text-slate-200">No matching jobs found</h3>
-                <p className="text-xs text-slate-400 max-w-md mx-auto">
-                  Try lowering the minimum match score, relaxing your role filter, or importing new opportunities.
-                </p>
-                <button
-                  onClick={handleRecalculateAll}
-                  className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs"
-                >
-                  Recalculate All Openings
-                </button>
+              <div className="rounded-[6px] border border-[#222227] bg-[#121215] overflow-hidden">
+                <div className="p-8 sm:p-10 text-center space-y-4 max-w-xl mx-auto">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-[3px] bg-[#0070F3]/10 border border-[#0070F3]/30 text-[#3291FF] text-[11px] font-mono">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#0070F3] animate-pulse" />
+                    <span>Awaiting Job Telemetry Stream</span>
+                  </div>
+                  <h3 className="text-lg font-medium text-white">No active matches in current view</h3>
+                  <p className="text-[13px] text-[#A1A1AA] leading-relaxed">
+                    Import open job URLs from Greenhouse, Lever, or LinkedIn, or click below to run deterministic multi-factor scoring against all database openings.
+                  </p>
+                  <div className="pt-2 flex items-center justify-center gap-3">
+                    <button
+                      onClick={handleRecalculateAll}
+                      className="px-4 py-2 rounded-[4px] bg-[#0070F3] hover:bg-[#0060DF] text-white font-medium text-xs transition-all shadow-[0_0_12px_rgba(0,112,243,0.3)]"
+                    >
+                      Recalculate All Openings
+                    </button>
+                    <button
+                      onClick={() => setShowImportModal(true)}
+                      className="px-4 py-2 rounded-[4px] bg-[#16161B] hover:bg-[#202028] text-[#EDEDED] hover:text-white border border-[#2D2D36] hover:border-[#0070F3]/60 font-medium text-xs transition-all"
+                    >
+                      + Import Job Posting
+                    </button>
+                  </div>
+                </div>
+
+                {/* Dashboard Visualization Image */}
+                <div className="border-t border-[#1F1F24] bg-[#0E0E11] p-3">
+                  <div className="rounded-[4px] overflow-hidden border border-[#1F1F24] opacity-80 hover:opacity-100 transition-opacity">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src="/images/jobs-telemetry.jpg"
+                      alt="Job Telemetry & Ingestion Stream Preview"
+                      className="w-full h-auto object-cover max-h-72"
+                    />
+                  </div>
+                </div>
               </div>
             )}
 

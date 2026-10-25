@@ -1,7 +1,6 @@
 'use client';
 
 import { Suspense, useEffect, useState } from 'react';
-import Navbar from '@/components/Navbar';
 import {
   api,
   ApplicationApprovalReviewRequest,
@@ -285,20 +284,19 @@ function ApplicationsInner() {
   const countCompleted = applications.filter((a) => ['manual_handoff', 'submitted', 'completed'].includes(a.status)).length;
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
-      <Navbar />
-
+    <div className="min-h-screen bg-[#0B0B0C] text-slate-100 flex flex-col font-sans">
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-6">
         {/* Header Bar */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#222227] pb-6">
           <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-3xl font-extrabold tracking-tight text-white">Application Workflows</h1>
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                Phase 7 Review-First Submission
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="text-[11px] font-mono tracking-wider uppercase text-[#3291FF] bg-[#0070F3]/10 border border-[#0070F3]/30 px-2.5 py-0.5 rounded-[3px]">
+                Application Workflows
               </span>
+              <span className="text-[12px] text-[#A1A1AA]">• Human Review-First Submission</span>
             </div>
-            <p className="text-slate-400 text-sm mt-1">
+            <h1 className="text-2xl sm:text-3xl font-medium tracking-tight text-white">Application Workflows</h1>
+            <p className="text-[13px] text-[#A1A1AA] mt-1 max-w-3xl leading-relaxed">
               Secure application packages, explicit human approvals, duplicate prevention, and permitted integrations with manual handoff.
             </p>
           </div>
@@ -306,7 +304,7 @@ function ApplicationsInner() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setShowStartModal(true)}
-              className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition flex items-center gap-2 shadow-lg shadow-indigo-600/20"
+              className="px-4 py-2 rounded-[4px] bg-[#0070F3] hover:bg-[#0060DF] text-white text-xs font-medium transition flex items-center gap-2 shadow-[0_0_12px_rgba(0,112,243,0.3)]"
             >
               <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
