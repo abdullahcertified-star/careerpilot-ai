@@ -35,12 +35,14 @@ class ResumeFactExtractor:
     def __init__(self) -> None:
         self.openai_key = settings.OPENAI_API_KEY
         self.anthropic_key = settings.ANTHROPIC_API_KEY
+        self.gemini_key = settings.GEMINI_API_KEY
 
     def is_llm_active(self) -> bool:
         """Check if third-party LLM credentials have been configured."""
         return (
             self.openai_key not in ("placeholder_openai_api_key", "", None)
             or self.anthropic_key not in ("placeholder_anthropic_api_key", "", None)
+            or self.gemini_key not in ("placeholder_gemini_api_key", "", None)
         )
 
     def extract(self, doc: ParsedDocument) -> ExtractedProfileData:

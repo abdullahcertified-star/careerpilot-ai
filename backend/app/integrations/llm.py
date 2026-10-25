@@ -14,12 +14,14 @@ class LLMClientProvider:
     def __init__(self) -> None:
         self.openai_key = settings.OPENAI_API_KEY
         self.anthropic_key = settings.ANTHROPIC_API_KEY
+        self.gemini_key = settings.GEMINI_API_KEY
 
     def is_configured(self) -> bool:
         """Check if any real LLM API key has been provided."""
         return (
             self.openai_key not in ("placeholder_openai_api_key", "", None)
             or self.anthropic_key not in ("placeholder_anthropic_api_key", "", None)
+            or self.gemini_key not in ("placeholder_gemini_api_key", "", None)
         )
 
     def generate_mock_response(self, prompt: str) -> dict[str, Any]:

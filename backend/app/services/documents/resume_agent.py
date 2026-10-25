@@ -38,12 +38,14 @@ class ResumeAgent:
     def __init__(self) -> None:
         self.openai_key = settings.OPENAI_API_KEY
         self.anthropic_key = settings.ANTHROPIC_API_KEY
+        self.gemini_key = settings.GEMINI_API_KEY
 
     def is_ai_configured(self) -> bool:
         """Check whether valid third-party LLM credentials exist."""
         return (
             self.openai_key not in ("placeholder_openai_api_key", "", None)
             or self.anthropic_key not in ("placeholder_anthropic_api_key", "", None)
+            or self.gemini_key not in ("placeholder_gemini_api_key", "", None)
         )
 
     async def generate_tailored_resume(
@@ -59,7 +61,7 @@ class ResumeAgent:
         """
         if require_live_llm and not self.is_ai_configured():
             raise MissingAIConfigurationError(
-                "AI credentials are not configured on the backend. Please provide a valid OPENAI_API_KEY or ANTHROPIC_API_KEY in server environment."
+                "AI credentials are not configured on the backend. Please provide a valid OPENAI_API_KEY, ANTHROPIC_API_KEY, or GEMINI_API_KEY in server environment."
             )
 
         model_name = "mock-agent-v1"

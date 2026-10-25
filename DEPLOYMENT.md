@@ -83,6 +83,7 @@ REDIS_URL=redis://:your_ultra_secure_redis_password@redis.internal.example.com:6
 # =========================================================================
 OPENAI_API_KEY=sk-proj-your_actual_openai_key
 ANTHROPIC_API_KEY=sk-ant-your_actual_anthropic_key
+GEMINI_API_KEY=AIzaSy-your_actual_gemini_key
 PRIMARY_LLM_PROVIDER=openai
 FALLBACK_LLM_PROVIDER=anthropic
 

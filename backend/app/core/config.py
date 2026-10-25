@@ -44,6 +44,7 @@ class Settings(BaseSettings):
 
     OPENAI_API_KEY: str = "placeholder_openai_api_key"
     ANTHROPIC_API_KEY: str = "placeholder_anthropic_api_key"
+    GEMINI_API_KEY: str = "placeholder_gemini_api_key"
     LANGSMITH_TRACING: bool = False
     LANGSMITH_ENDPOINT: str = "https://api.smith.langchain.com"
     LANGSMITH_API_KEY: str = "placeholder_langsmith_api_key"
