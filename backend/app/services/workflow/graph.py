@@ -99,7 +99,9 @@ def build_workflow_graph() -> StateGraph:
     return builder
 
 
-def compile_workflow_graph(checkpointer: BaseCheckpointSaver[Any]) -> CompiledStateGraph:
+def compile_workflow_graph(
+    checkpointer: BaseCheckpointSaver[Any],
+) -> CompiledStateGraph:
     """Compile graph with durable checkpointer."""
     builder = build_workflow_graph()
     return builder.compile(checkpointer=checkpointer)

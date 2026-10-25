@@ -516,6 +516,125 @@ export const api = {
   async getApplicationHistory(id: number): Promise<WorkflowHistoryItem[]> {
     return request<WorkflowHistoryItem[]>(`/applications/${id}/history`);
   },
+
+  // Phase 7: Secure Package Review & Permitted Submission
+  async getApplicationPackage(id: number): Promise<ApplicationPackage> {
+    return request<ApplicationPackage>(`/applications/${id}/package`);
+  },
+
+  async updateProposedAnswers(id: number, answers: ProposedFormAnswers): Promise<ApplicationPackage> {
+    return request<ApplicationPackage>(`/applications/${id}/answers`, {
+      method: 'PUT',
+      body: JSON.stringify({ form_answers: answers }),
+    });
+  },
+
+  async updateDocumentSelection(id: number, resumeVersionId?: number, coverLetterVersionId?: number): Promise<ApplicationPackage> {
+    return request<ApplicationPackage>(`/applications/${id}/document-selection`, {
+      method: 'PUT',
+      body: JSON.stringify({ resume_version_id: resumeVersionId, cover_letter_version_id: coverLetterVersionId }),
+    });
+  },
+
+  async reviewAndApprovePackage(id: number, payload: ApplicationApprovalReviewRequest): Promise<ApplicationPackage> {
+    return request<ApplicationPackage>(`/applications/${id}/review-approval`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async submitApplicationPackage(id: number, payload: ApplicationSubmitRequest): Promise<SubmissionResult> {
+    return request<SubmissionResult>(`/applications/${id}/submit`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async getSubmissionAttempts(id: number): Promise<SubmissionAttemptResponse[]> {
+    return request<SubmissionAttemptResponse[]>(`/applications/${id}/attempts`);
+  },
+
+  // Phase 8: Saved Searches & Scheduled Scans
+  async listSavedSearches(): Promise<SavedSearchListResponse> {
+    return request<SavedSearchListResponse>('/saved-searches');
+  },
+
+  async getSavedSearch(id: number): Promise<SavedSearch> {
+    return request<SavedSearch>(`/saved-searches/${id}`);
+  },
+
+  async createSavedSearch(payload: SavedSearchCreate): Promise<SavedSearch> {
+    return request<SavedSearch>('/saved-searches', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async updateSavedSearch(id: number, payload: SavedSearchUpdate): Promise<SavedSearch> {
+    return request<SavedSearch>(`/saved-searches/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async deleteSavedSearch(id: number): Promise<{ message: string; id: number }> {
+    return request<{ message: string; id: number }>(`/saved-searches/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  async pauseSavedSearch(id: number): Promise<SavedSearch> {
+    return request<SavedSearch>(`/saved-searches/${id}/pause`, {
+      method: 'POST',
+    });
+  },
+
+  async resumeSavedSearch(id: number): Promise<SavedSearch> {
+    return request<SavedSearch>(`/saved-searches/${id}/resume`, {
+      method: 'POST',
+    });
+  },
+
+  async runSavedSearchNow(id: number): Promise<ScheduledScanRun> {
+    return request<ScheduledScanRun>(`/saved-searches/${id}/run-now`, {
+      method: 'POST',
+    });
+  },
+
+  async cancelSavedSearchScan(id: number): Promise<ScanCancelResponse> {
+    return request<ScanCancelResponse>(`/saved-searches/${id}/cancel`, {
+      method: 'POST',
+    });
+  },
+
+  async getSavedSearchRuns(id: number): Promise<ScheduledScanRun[]> {
+    return request<ScheduledScanRun[]>(`/saved-searches/${id}/runs`);
+  },
+
+  // Phase 8: Notifications
+  async listNotifications(isRead?: boolean, limit: number = 50, offset: number = 0): Promise<NotificationListResponse> {
+    const qp = new URLSearchParams();
+    if (isRead !== undefined) qp.set('is_read', String(isRead));
+    qp.set('limit', String(limit));
+    qp.set('offset', String(offset));
+    return request<NotificationListResponse>(`/notifications?${qp.toString()}`);
+  },
+
+  async getUnreadNotificationCount(): Promise<NotificationUnreadCountResponse> {
+    return request<NotificationUnreadCountResponse>('/notifications/unread-count');
+  },
+
+  async markNotificationRead(id: number): Promise<InAppNotification> {
+    return request<InAppNotification>(`/notifications/${id}/read`, {
+      method: 'PATCH',
+    });
+  },
+
+  async markAllNotificationsRead(): Promise<{ message: string; count: number }> {
+    return request<{ message: string; count: number }>('/notifications/read-all', {
+      method: 'POST',
+    });
+  },
 };
 
 export interface JobProviderCapability {
@@ -809,6 +928,245 @@ export interface ApplicationResponse {
   job_title?: string | null;
   job_company?: string | null;
   recent_logs?: WorkflowHistoryItem[];
+}
+
+// Phase 7: Application Package, Review Screen, and Permitted Submission Types
+export interface ProposedFormAnswers {
+  full_name: string;
+  email: string;
+  phone: string;
+  location: string;
+  work_authorization: string;
+  requires_sponsorship: boolean;
+  notice_period: string;
+  linkedin_url?: string | null;
+  github_url?: string | null;
+  portfolio_url?: string | null;
+  target_salary?: string | null;
+  custom_answers?: Record<string, unknown>;
+  sensitive_fields_requiring_manual_input?: string[];
+}
+
+export interface JobSummaryDetails {
+  id: number;
+  title: string;
+  company: string;
+  location?: string | null;
+  work_mode: string;
+  employment_type: string;
+  canonical_url: string;
+  source: string;
+  source_id: string;
+  description_snippet: string;
+}
+
+export interface DocumentVersionSummary {
+  document_id: number;
+  version_id: number;
+  version_number: number;
+  doc_type: string;
+  title: string;
+  formatted_text: string;
+  structured_data: Record<string, unknown>;
+  factual_confidence_score?: number | null;
+  is_approved: boolean;
+}
+
+export interface ProviderCapabilityInfo {
+  provider_id: string;
+  provider_name: string;
+  is_direct_api: boolean;
+  supports_submission: boolean;
+  requires_credentials: boolean;
+  has_credentials: boolean;
+  submission_method: string;
+  handoff_reason?: string | null;
+  notes: string;
+}
+
+export interface ApplicationPackage {
+  application_id: number;
+  user_id: number;
+  workflow_thread_id: string;
+  job: JobSummaryDetails;
+  original_application_url: string;
+  resume?: DocumentVersionSummary | null;
+  cover_letter?: DocumentVersionSummary | null;
+  form_answers: ProposedFormAnswers;
+  provider_capability: ProviderCapabilityInfo;
+  submission_method: string;
+  package_hash: string;
+  approval_status: string;
+  approval_notes?: string | null;
+  approved_at?: string | null;
+  approved_package_hash?: string | null;
+  is_content_altered_since_approval: boolean;
+  last_error?: string | null;
+}
+
+export interface ApplicationApprovalReviewRequest {
+  approved: boolean;
+  notes?: string;
+  expected_package_hash?: string;
+  job_id?: number;
+}
+
+export interface ApplicationSubmitRequest {
+  submission_key: string;
+  target_job_id?: number;
+  confirmed_package_hash?: string;
+}
+
+export interface LabeledAnswerItem {
+  field_key: string;
+  label: string;
+  value: string;
+  is_sensitive?: boolean;
+  help_text?: string | null;
+}
+
+export interface ManualHandoffPacket {
+  application_id: number;
+  job_title: string;
+  company: string;
+  original_application_url: string;
+  resume_document_id?: number | null;
+  resume_version_id?: number | null;
+  cover_letter_document_id?: number | null;
+  cover_letter_version_id?: number | null;
+  cover_letter_text?: string | null;
+  labeled_answers: LabeledAnswerItem[];
+  instructions: string[];
+  generated_at: string;
+}
+
+export interface SubmissionAttemptResponse {
+  id: number;
+  application_id: number;
+  submission_key: string;
+  actor_id: string;
+  provider_id: string;
+  submission_method: string;
+  status: string;
+  receipt_reference?: string | null;
+  response_payload: Record<string, unknown>;
+  error_message?: string | null;
+  blind_resubmission_prevented: boolean;
+  started_at: string;
+  completed_at?: string | null;
+}
+
+export interface SubmissionResult {
+  status: string;
+  receipt_reference?: string | null;
+  response_payload: Record<string, unknown>;
+  error_message?: string | null;
+  blind_resubmission_prevented: boolean;
+  handoff_packet?: ManualHandoffPacket | null;
+}
+
+// Phase 8: Saved Searches & Scheduled Scans Interfaces
+export interface SavedSearchCreate {
+  name: string;
+  role_title?: string | null;
+  keywords?: string[] | null;
+  location?: string | null;
+  work_mode?: string | null;
+  employment_type?: string | null;
+  min_match_score?: number | null;
+  interval_minutes?: number;
+  provider_id?: string | null;
+  is_active?: boolean;
+}
+
+export interface SavedSearchUpdate {
+  name?: string | null;
+  role_title?: string | null;
+  keywords?: string[] | null;
+  location?: string | null;
+  work_mode?: string | null;
+  employment_type?: string | null;
+  min_match_score?: number | null;
+  interval_minutes?: number | null;
+  provider_id?: string | null;
+  is_active?: boolean | null;
+}
+
+export interface ScheduledScanRun {
+  id: number;
+  saved_search_id: number;
+  task_id: string;
+  status: string;
+  started_at: string;
+  completed_at?: string | null;
+  duration_seconds?: number | null;
+  retry_count: number;
+  discovered_count: number;
+  ingested_count: number;
+  duplicate_count: number;
+  high_match_count: number;
+  error_message?: string | null;
+  created_at: string;
+}
+
+export interface SavedSearch {
+  id: number;
+  user_id: number;
+  name: string;
+  role_title?: string | null;
+  keywords?: string[] | null;
+  location?: string | null;
+  work_mode?: string | null;
+  employment_type?: string | null;
+  min_match_score?: number | null;
+  interval_minutes: number;
+  provider_id?: string | null;
+  is_active: boolean;
+  is_paused: boolean;
+  last_run_at?: string | null;
+  last_success_at?: string | null;
+  last_failure_at?: string | null;
+  next_run_at?: string | null;
+  consecutive_failures: number;
+  total_runs: number;
+  total_discovered: number;
+  last_error?: string | null;
+  created_at: string;
+  updated_at: string;
+  latest_run?: ScheduledScanRun | null;
+}
+
+export interface SavedSearchListResponse {
+  items: SavedSearch[];
+  total: number;
+}
+
+export interface ScanCancelResponse {
+  saved_search_id: number;
+  status: string;
+  message: string;
+}
+
+export interface InAppNotification {
+  id: number;
+  user_id: number;
+  type: string;
+  title: string;
+  message: string;
+  data: Record<string, unknown>;
+  is_read: boolean;
+  read_at?: string | null;
+  created_at: string;
+}
+
+export interface NotificationListResponse {
+  items: InAppNotification[];
+  total: number;
+  unread_count: number;
+}
+
+export interface NotificationUnreadCountResponse {
+  unread_count: number;
 }
 
 

@@ -108,18 +108,29 @@ class MatchingService:
         if not candidate:
             return 0
 
+        # Fetch existing match job IDs for candidate to guarantee all stale matches are refreshed
+        existing_matches_stmt = select(JobMatch.job_id).where(JobMatch.user_id == user_id)
+        existing_job_ids = list((await session.execute(existing_matches_stmt)).scalars().all())
+
         # Fetch active job postings
-        stmt = select(JobPosting).where(JobPosting.is_active.is_(True)).order_by(desc(JobPosting.retrieved_at)).limit(limit)
+        stmt = (
+            select(JobPosting.id)
+            .where(JobPosting.is_active.is_(True))
+            .order_by(desc(JobPosting.retrieved_at))
+            .limit(limit)
+        )
         res = await session.execute(stmt)
-        jobs = list(res.scalars().all())
+        active_job_ids = list(res.scalars().all())
+
+        target_job_ids = list(dict.fromkeys(existing_job_ids + active_job_ids))
 
         count = 0
-        for job in jobs:
+        for job_id in target_job_ids:
             try:
-                await MatchingService.evaluate_and_persist_match(session, user_id, job.id, force=True)
+                await MatchingService.evaluate_and_persist_match(session, user_id, job_id, force=True)
                 count += 1
             except Exception as exc:
-                logger.warning("Error evaluating match for user %s on job %s: %s", user_id, job.id, exc)
+                logger.warning("Error evaluating match for user %s on job %s: %s", user_id, job_id, exc)
 
         return count
 

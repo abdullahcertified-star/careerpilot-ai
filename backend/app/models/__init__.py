@@ -1,23 +1,27 @@
 """SQLAlchemy models package."""
 
 from app.models.entities import (
+    ApplicationSubmissionAttempt,
     Certification,
+    DocumentVersion,
     Education,
     Experience,
+    GeneratedDocument,
+    JobApplication,
+    JobMatch,
+    JobPosting,
+    Notification,
     Profile,
     ProfileChangeLog,
     Project,
     ResumeExtraction,
     ResumeMetadata,
+    SavedJob,
+    SavedSearch,
+    ScheduledScanRun,
     Skill,
     User,
     UserSession,
-    JobPosting,
-    SavedJob,
-    JobMatch,
-    GeneratedDocument,
-    DocumentVersion,
-    JobApplication,
     WorkflowExecutionLog,
 )
 
@@ -40,4 +44,8 @@ __all__ = [
     "DocumentVersion",
     "JobApplication",
     "WorkflowExecutionLog",
+    "ApplicationSubmissionAttempt",
+    "SavedSearch",
+    "ScheduledScanRun",
+    "Notification",
 ]

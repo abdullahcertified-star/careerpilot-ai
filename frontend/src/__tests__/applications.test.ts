@@ -145,4 +145,94 @@ describe('Applications & LangGraph Workflow Client API (Phase 6)', () => {
     expect(logs).toHaveLength(2);
     expect(logs[1].node_name).toBe('human_approval');
   });
+
+  // Phase 7: Secure Review & Submission Tests
+  it('fetches complete application package via GET /applications/:id/package', async () => {
+    const mockPackage = {
+      application_id: 10,
+      user_id: 1,
+      workflow_thread_id: 'thread_123',
+      job: { id: 101, title: 'Engineer', company: 'Acme', canonical_url: 'https://example.com/job/1' },
+      original_application_url: 'https://example.com/job/1',
+      form_answers: { full_name: 'John Doe', email: 'john@example.com', work_authorization: 'US Citizen' },
+      provider_capability: { provider_id: 'manual_handoff', submission_method: 'manual_handoff' },
+      submission_method: 'manual_handoff',
+      package_hash: 'hash_abc123',
+      approval_status: 'pending',
+      is_content_altered_since_approval: false,
+    };
+
+    const fetchSpy = vi.spyOn(global, 'fetch').mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockPackage,
+    } as Response);
+
+    const pkg = await api.getApplicationPackage(10);
+    expect(fetchSpy).toHaveBeenCalled();
+    const calledUrl = fetchSpy.mock.calls[0][0] as string;
+    expect(calledUrl).toContain('/applications/10/package');
+    expect(pkg.package_hash).toBe('hash_abc123');
+    expect(pkg.form_answers.full_name).toBe('John Doe');
+  });
+
+  it('updates proposed form answers via PUT /applications/:id/answers', async () => {
+    const mockUpdatedPackage = {
+      application_id: 10,
+      approval_status: 'invalidated',
+      package_hash: 'hash_new456',
+    };
+
+    const fetchSpy = vi.spyOn(global, 'fetch').mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockUpdatedPackage,
+    } as Response);
+
+    const updatedAnswers = {
+      full_name: 'John Updated',
+      email: 'john@example.com',
+      phone: '555-1234',
+      location: 'Remote',
+      work_authorization: 'Citizen',
+      requires_sponsorship: false,
+      notice_period: 'Immediate',
+    };
+
+    const res = await api.updateProposedAnswers(10, updatedAnswers);
+    expect(fetchSpy).toHaveBeenCalled();
+    const [url, init] = fetchSpy.mock.calls[0];
+    expect(url).toContain('/applications/10/answers');
+    expect(init?.method).toBe('PUT');
+    expect(res.approval_status).toBe('invalidated');
+  });
+
+  it('submits application package with unique submission key via POST /applications/:id/submit', async () => {
+    const mockResult = {
+      status: 'manual_handoff',
+      receipt_reference: 'HANDOFF-10-key123',
+      blind_resubmission_prevented: false,
+      handoff_packet: {
+        application_id: 10,
+        original_application_url: 'https://example.com/job/1',
+      },
+    };
+
+    const fetchSpy = vi.spyOn(global, 'fetch').mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockResult,
+    } as Response);
+
+    const submitReq = {
+      submission_key: 'sub_key_123',
+      target_job_id: 101,
+      confirmed_package_hash: 'hash_abc123',
+    };
+
+    const res = await api.submitApplicationPackage(10, submitReq);
+    expect(fetchSpy).toHaveBeenCalled();
+    const [url, init] = fetchSpy.mock.calls[0];
+    expect(url).toContain('/applications/10/submit');
+    expect(init?.method).toBe('POST');
+    expect(res.status).toBe('manual_handoff');
+    expect(res.receipt_reference).toContain('HANDOFF-10');
+  });
 });

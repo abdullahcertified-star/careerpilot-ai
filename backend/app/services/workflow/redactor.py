@@ -2,7 +2,8 @@
 
 import logging
 import re
-from typing import Any, Dict, List, Optional, Set
+from typing import Any
+
 from langchain_core.tracers.base import BaseTracer
 from langchain_core.tracers.schemas import Run
 
@@ -10,13 +11,21 @@ logger = logging.getLogger(__name__)
 
 # Keys whose values should always be masked
 SENSITIVE_KEY_PATTERNS = {
-    re.compile(r".*(token|secret|password|api[_-]?key|auth|bearer|cookie).*", re.IGNORECASE),
-    re.compile(r".*(cv[_-]?text|raw[_-]?cv|parsed[_-]?text|resume[_-]?text).*", re.IGNORECASE),
-    re.compile(r".*(ssn|social[_-]?security|passport|credit[_-]?card).*", re.IGNORECASE),
+    re.compile(
+        r".*(token|secret|password|api[_-]?key|auth|bearer|cookie).*", re.IGNORECASE
+    ),
+    re.compile(
+        r".*(cv[_-]?text|raw[_-]?cv|parsed[_-]?text|resume[_-]?text).*", re.IGNORECASE
+    ),
+    re.compile(
+        r".*(ssn|social[_-]?security|passport|credit[_-]?card).*", re.IGNORECASE
+    ),
 }
 
 # Substring values pattern (e.g. bearer tokens or jwt)
-JWT_PATTERN = re.compile(r"eyJ[a-zA-Z0-9_-]{10,}\.[a-zA-Z0-9_-]{10,}\.[a-zA-Z0-9_-]{10,}")
+JWT_PATTERN = re.compile(
+    r"eyJ[a-zA-Z0-9_-]{10,}\.[a-zA-Z0-9_-]{10,}\.[a-zA-Z0-9_-]{10,}"
+)
 OPENAI_KEY_PATTERN = re.compile(r"sk-[a-zA-Z0-9T3BlbkFJ]{20,}")
 
 
@@ -39,12 +48,15 @@ def redact_sensitive_value(value: Any, key_name: str = "") -> Any:
         # Mask API keys
         sanitized = OPENAI_KEY_PATTERN.sub("[REDACTED_API_KEY]", sanitized)
         # If string is massive raw text containing candidate personal info
-        if len(sanitized) > 5000 and any(kw in sanitized.lower() for kw in ["curriculum vitae", "resume", "confidential"]):
+        if len(sanitized) > 5000 and any(
+            kw in sanitized.lower()
+            for kw in ["curriculum vitae", "resume", "confidential"]
+        ):
             return f"[REDACTED_RAW_DOCUMENT_BODY: {len(sanitized)} chars]"
         return sanitized
 
     if isinstance(value, dict):
-        redacted_dict: Dict[str, Any] = {}
+        redacted_dict: dict[str, Any] = {}
         for k, v in value.items():
             if is_sensitive_key(k):
                 redacted_dict[k] = "[REDACTED_CONFIDENTIAL]"
@@ -54,7 +66,11 @@ def redact_sensitive_value(value: Any, key_name: str = "") -> Any:
 
     if isinstance(value, (list, tuple, set)):
         redacted_list = [redact_sensitive_value(item, key_name) for item in value]
-        return type(value)(redacted_list) if not isinstance(value, (set, tuple)) else list(redacted_list)
+        return (
+            type(value)(redacted_list)
+            if not isinstance(value, (set, tuple))
+            else list(redacted_list)
+        )
 
     return value
 
@@ -62,7 +78,11 @@ def redact_sensitive_value(value: Any, key_name: str = "") -> Any:
 class RedactingLangSmithTracer(BaseTracer):
     """LangSmith tracer with automated sensitive data redaction and failure isolation."""
 
-    def __init__(self, run_tags: Optional[List[str]] = None, metadata: Optional[Dict[str, Any]] = None):
+    def __init__(
+        self,
+        run_tags: list[str] | None = None,
+        metadata: dict[str, Any] | None = None,
+    ):
         super().__init__()
         self.run_tags = run_tags or ["careerpilot", "phase-6-workflow"]
         self.metadata = metadata or {}

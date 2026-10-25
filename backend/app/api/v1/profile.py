@@ -1,10 +1,12 @@
-from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status
+import shutil
+from typing import Any, Dict, List
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.api.deps import get_current_user
+from app.api.v1.auth import clear_session_cookie
 from app.core.database import get_db
 from app.models.entities import (
     Certification,
@@ -281,3 +283,204 @@ async def delete_project(
     await db.delete(proj)
     await db.commit()
     return MessageResponse(message="Project deleted successfully.")
+
+
+# --- GDPR / Privacy: Personal Data Export & Erasure (Articles 15, 17, 20) ---
+@router.get("/export", response_model=Dict[str, Any])
+async def export_personal_data(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> Dict[str, Any]:
+    """
+    Export all personal data held for the authenticated candidate (GDPR Art. 15/20).
+    Returns complete structured JSON archive of user account, profile, records,
+    resumes, job applications, saved searches, and notifications.
+    """
+    stmt = (
+        select(User)
+        .where(User.id == current_user.id)
+        .options(
+            selectinload(User.profile),
+            selectinload(User.skills),
+            selectinload(User.educations),
+            selectinload(User.experiences),
+            selectinload(User.projects),
+            selectinload(User.certifications),
+            selectinload(User.resumes),
+            selectinload(User.applications),
+            selectinload(User.saved_searches),
+            selectinload(User.notifications),
+            selectinload(User.generated_documents),
+        )
+    )
+    user_record = (await db.execute(stmt)).scalar_one()
+
+    return {
+        "export_metadata": {
+            "requested_at": user_record.updated_at.isoformat() if user_record.updated_at else None,
+            "regulation": "GDPR Article 15 (Right of access) / Article 20 (Right to data portability)",
+            "user_id": user_record.id,
+        },
+        "account": {
+            "id": user_record.id,
+            "email": user_record.email,
+            "full_name": user_record.full_name,
+            "role": user_record.role,
+            "created_at": user_record.created_at.isoformat() if user_record.created_at else None,
+            "updated_at": user_record.updated_at.isoformat() if user_record.updated_at else None,
+        },
+        "profile": {
+            "headline": user_record.profile.headline if user_record.profile else None,
+            "bio": user_record.profile.bio if user_record.profile else None,
+            "location": user_record.profile.location if user_record.profile else None,
+            "phone": user_record.profile.phone if user_record.profile else None,
+            "linkedin_url": user_record.profile.linkedin_url if user_record.profile else None,
+            "github_url": user_record.profile.github_url if user_record.profile else None,
+            "website_url": user_record.profile.website_url if user_record.profile else None,
+            "target_job_titles": user_record.profile.target_job_titles if user_record.profile else [],
+            "target_salary_min": user_record.profile.target_salary_min if user_record.profile else None,
+            "target_salary_max": user_record.profile.target_salary_max if user_record.profile else None,
+            "remote_preference": user_record.profile.remote_preference if user_record.profile else None,
+            "work_authorization_status": user_record.profile.work_authorization_status if user_record.profile else None,
+            "profile_version": user_record.profile.profile_version if user_record.profile else 1,
+        },
+        "skills": [
+            {
+                "id": s.id,
+                "name": s.name,
+                "category": s.category,
+                "years_experience": s.years_experience,
+                "proficiency_level": s.proficiency_level,
+            }
+            for s in user_record.skills
+        ],
+        "educations": [
+            {
+                "id": e.id,
+                "institution": e.institution,
+                "degree": e.degree,
+                "field_of_study": e.field_of_study,
+                "start_date": str(e.start_date) if e.start_date else None,
+                "end_date": str(e.end_date) if e.end_date else None,
+                "gpa": e.gpa,
+            }
+            for e in user_record.educations
+        ],
+        "experiences": [
+            {
+                "id": x.id,
+                "company": x.company,
+                "title": x.title,
+                "location": x.location,
+                "start_date": str(x.start_date) if x.start_date else None,
+                "end_date": str(x.end_date) if x.end_date else None,
+                "is_current": x.is_current,
+                "description": x.description,
+                "achievements": x.achievements,
+            }
+            for x in user_record.experiences
+        ],
+        "projects": [
+            {
+                "id": p.id,
+                "title": p.title,
+                "description": p.description,
+                "url": p.url,
+                "repo_url": p.repo_url,
+                "technologies": p.technologies,
+            }
+            for p in user_record.projects
+        ],
+        "certifications": [
+            {
+                "id": c.id,
+                "name": c.name,
+                "issuing_organization": c.issuing_organization,
+                "issue_date": str(c.issue_date) if c.issue_date else None,
+                "credential_id": c.credential_id,
+            }
+            for c in user_record.certifications
+        ],
+        "resumes": [
+            {
+                "id": r.id,
+                "filename": r.filename,
+                "doc_format": r.doc_format,
+                "file_size_bytes": r.file_size_bytes,
+                "page_count": r.page_count,
+                "created_at": r.created_at.isoformat() if r.created_at else None,
+            }
+            for r in user_record.resumes
+        ],
+        "applications": [
+            {
+                "id": a.id,
+                "job_id": a.job_id,
+                "status": a.status,
+                "fit_score": a.fit_score,
+                "submission_type": a.submission_type,
+                "applied_at": a.applied_at.isoformat() if a.applied_at else None,
+                "notes": a.notes,
+            }
+            for a in user_record.applications
+        ],
+        "saved_searches": [
+            {
+                "id": ss.id,
+                "name": ss.name,
+                "role_query": ss.role_query,
+                "location": ss.location,
+                "min_match_score": ss.min_match_score,
+                "scan_interval_hours": ss.scan_interval_hours,
+                "is_active": ss.is_active,
+            }
+            for ss in user_record.saved_searches
+        ],
+        "notifications": [
+            {
+                "id": n.id,
+                "title": n.title,
+                "message": n.message,
+                "notification_type": n.notification_type,
+                "is_read": n.is_read,
+                "created_at": n.created_at.isoformat() if n.created_at else None,
+            }
+            for n in user_record.notifications
+        ],
+    }
+
+
+@router.delete("/account", response_model=MessageResponse)
+async def delete_candidate_account(
+    response: Response,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> MessageResponse:
+    """
+    Permanently erase candidate account and all associated personal data (GDPR Art. 17 Right to Erasure).
+    Cascades removal of all profile entries, applications, resumes, matches, saved searches,
+    and purges stored private resume files on disk.
+    """
+    from app.services.document_parser import STORAGE_ROOT
+
+    user_id = current_user.id
+
+    # 1. Purge physical files on disk
+    user_storage_dir = STORAGE_ROOT / str(user_id)
+    if user_storage_dir.exists() and user_storage_dir.is_dir():
+        shutil.rmtree(user_storage_dir, ignore_errors=True)
+
+    # 2. Delete User entity from database (cascades to all user child records)
+    stmt = select(User).where(User.id == user_id)
+    user_record = (await db.execute(stmt)).scalar_one_or_none()
+    if user_record:
+        await db.delete(user_record)
+        await db.commit()
+
+    # 3. Clear session cookie
+    clear_session_cookie(response)
+
+    return MessageResponse(
+        message="Your account and all associated personal data have been permanently deleted in accordance with data protection regulations."
+    )
+

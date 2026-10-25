@@ -128,3 +128,54 @@ async def test_education_experience_project_ownership(async_client: AsyncClient)
     assert (await async_client.delete(f"/api/v1/profile/education/{edu_id}", headers=headers_b)).status_code == 200
     assert (await async_client.delete(f"/api/v1/profile/experience/{exp_id}", headers=headers_b)).status_code == 200
     assert (await async_client.delete(f"/api/v1/profile/projects/{proj_id}", headers=headers_b)).status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_security_headers_enforcement(async_client: AsyncClient) -> None:
+    """Verify production security headers on HTTP responses."""
+    resp = await async_client.get("/")
+    assert resp.status_code == 200
+    assert resp.headers.get("X-Content-Type-Options") == "nosniff"
+    assert resp.headers.get("X-Frame-Options") == "DENY"
+    assert "Strict-Transport-Security" in resp.headers
+    assert "Content-Security-Policy" in resp.headers
+    assert resp.headers.get("Referrer-Policy") == "strict-origin-when-cross-origin"
+
+
+@pytest.mark.asyncio
+async def test_gdpr_export_and_account_deletion(async_client: AsyncClient) -> None:
+    """Validate GDPR personal data export and cascading account deletion."""
+    email = make_email()
+    resp = await async_client.post(
+        "/api/v1/auth/register",
+        json={"email": email, "password": "SecurePassword123!", "full_name": "GDPR Tester"},
+    )
+    token = resp.json()["token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # Add skill and education
+    await async_client.post(
+        "/api/v1/profile/skills",
+        headers=headers,
+        json={"name": "Privacy Engineering", "proficiency_level": "expert"},
+    )
+
+    # 1. Export personal data (Art 15/20)
+    export_resp = await async_client.get("/api/v1/profile/export", headers=headers)
+    assert export_resp.status_code == 200
+    data = export_resp.json()
+    assert data["account"]["email"] == email
+    assert data["account"]["full_name"] == "GDPR Tester"
+    assert len(data["skills"]) == 1
+    assert data["skills"][0]["name"] == "Privacy Engineering"
+    assert "export_metadata" in data
+
+    # 2. Delete account permanently (Art 17)
+    del_resp = await async_client.delete("/api/v1/profile/account", headers=headers)
+    assert del_resp.status_code == 200
+    assert "permanently deleted" in del_resp.json()["message"]
+
+    # 3. Verify user can no longer authenticate / access profile
+    get_resp = await async_client.get("/api/v1/profile/me", headers=headers)
+    assert get_resp.status_code == 401
+

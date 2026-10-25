@@ -1,8 +1,8 @@
 """Workflow orchestration service managing execution, restarts, approval, and persistence."""
 
 import logging
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, cast
+from datetime import UTC, datetime
+from typing import Any, cast
 from uuid import uuid4
 
 from langchain_core.runnables import RunnableConfig
@@ -13,20 +13,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.entities import (
-    DocumentVersion,
-    GeneratedDocument,
     JobApplication,
-    JobPosting,
     WorkflowExecutionLog,
 )
-from app.services.workflow.checkpointer import get_durable_checkpointer, get_sync_checkpointer
+from app.services.workflow.checkpointer import (
+    get_durable_checkpointer,
+    get_sync_checkpointer,
+)
 from app.services.workflow.graph import compile_workflow_graph
 from app.services.workflow.redactor import RedactingLangSmithTracer
 from app.services.workflow.schemas import (
     ApplicationApprovalRequest,
-    ApplicationResponse,
     ApplicationStartRequest,
-    WorkflowHistoryItem,
     WorkflowState,
 )
 
@@ -36,7 +34,7 @@ logger = logging.getLogger(__name__)
 class WorkflowService:
     """Service orchestrating durable LangGraph job application workflows."""
 
-    def __init__(self, checkpointer: Optional[BaseCheckpointSaver[Any]] = None):
+    def __init__(self, checkpointer: BaseCheckpointSaver[Any] | None = None):
         self._custom_checkpointer = checkpointer
 
     async def _get_checkpointer(self) -> BaseCheckpointSaver[Any]:
@@ -56,15 +54,28 @@ class WorkflowService:
     ) -> JobApplication:
         """Initiate or idempotently resume an application workflow."""
         # 1. Idempotency Check: if key provided, check for existing application
-        idempotency_key = request.idempotency_key or f"user:{user_id}:job:{request.job_id or request.job_url}:{uuid4().hex}"
+        idempotency_key = (
+            request.idempotency_key
+            or f"user:{user_id}:job:{request.job_id or request.job_url}:{uuid4().hex}"
+        )
         stmt = (
             select(JobApplication)
-            .options(selectinload(JobApplication.job), selectinload(JobApplication.execution_logs))
-            .where(JobApplication.user_id == user_id, JobApplication.idempotency_key == idempotency_key)
+            .options(
+                selectinload(JobApplication.job),
+                selectinload(JobApplication.execution_logs),
+            )
+            .where(
+                JobApplication.user_id == user_id,
+                JobApplication.idempotency_key == idempotency_key,
+            )
         )
         existing = (await session.execute(stmt)).scalar_one_or_none()
         if existing:
-            logger.info("Idempotent hit for application key %s (id=%s)", idempotency_key, existing.id)
+            logger.info(
+                "Idempotent hit for application key %s (id=%s)",
+                idempotency_key,
+                existing.id,
+            )
             return existing
 
         # 2. Create durable JobApplication record
@@ -79,8 +90,8 @@ class WorkflowService:
             submission_mode=request.submission_mode or "manual_handoff",
             application_payload={},
             tracking_metadata={},
-            created_at=datetime.now(timezone.utc),
-            updated_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC),
         )
         session.add(application)
         await session.commit()
@@ -110,7 +121,10 @@ class WorkflowService:
         # 4. Execute workflow with redaction tracer
         tracer = RedactingLangSmithTracer(
             run_tags=["careerpilot", f"user_{user_id}", f"app_{application.id}"],
-            metadata={"idempotency_key": idempotency_key, "submission_mode": application.submission_mode},
+            metadata={
+                "idempotency_key": idempotency_key,
+                "submission_mode": application.submission_mode,
+            },
         )
 
         config = cast(
@@ -153,15 +167,25 @@ class WorkflowService:
         """Resume an interrupted workflow after human approval or rejection."""
         stmt = (
             select(JobApplication)
-            .options(selectinload(JobApplication.job), selectinload(JobApplication.execution_logs))
-            .where(JobApplication.id == application_id, JobApplication.user_id == user_id)
+            .options(
+                selectinload(JobApplication.job),
+                selectinload(JobApplication.execution_logs),
+            )
+            .where(
+                JobApplication.id == application_id, JobApplication.user_id == user_id
+            )
         )
         application = (await session.execute(stmt)).scalar_one_or_none()
         if not application:
             raise ValueError(f"Application {application_id} not found or access denied")
 
         # Check if already terminated
-        if application.status in ["submitted", "manual_handoff", "cancelled", "rejected"]:
+        if application.status in [
+            "submitted",
+            "manual_handoff",
+            "cancelled",
+            "rejected",
+        ]:
             return application
 
         thread_id = application.workflow_thread_id
@@ -174,14 +198,21 @@ class WorkflowService:
         }
 
         # Update application state in database
-        application.approval_status = "approved" if approval_request.approved else "rejected"
+        application.approval_status = (
+            "approved" if approval_request.approved else "rejected"
+        )
         application.approval_notes = approval_request.notes
         if approval_request.approved:
-            application.approved_at = datetime.now(timezone.utc)
+            application.approved_at = datetime.now(UTC)
         await session.commit()
 
         tracer = RedactingLangSmithTracer(
-            run_tags=["careerpilot", f"user_{user_id}", f"app_{application.id}", "resume_approval"],
+            run_tags=[
+                "careerpilot",
+                f"user_{user_id}",
+                f"app_{application.id}",
+                "resume_approval",
+            ],
         )
         config = cast(
             RunnableConfig,
@@ -212,8 +243,13 @@ class WorkflowService:
         """Explicitly cancel an active application workflow."""
         stmt = (
             select(JobApplication)
-            .options(selectinload(JobApplication.job), selectinload(JobApplication.execution_logs))
-            .where(JobApplication.id == application_id, JobApplication.user_id == user_id)
+            .options(
+                selectinload(JobApplication.job),
+                selectinload(JobApplication.execution_logs),
+            )
+            .where(
+                JobApplication.id == application_id, JobApplication.user_id == user_id
+            )
         )
         application = (await session.execute(stmt)).scalar_one_or_none()
         if not application:
@@ -231,7 +267,7 @@ class WorkflowService:
             node_name="cancellation",
             status="completed",
             details={"reason": reason},
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
         )
         session.add(log)
         await session.commit()
@@ -244,16 +280,17 @@ class WorkflowService:
         user_id: int,
         document_id: int,
         new_version_id: int,
-    ) -> List[int]:
+    ) -> list[int]:
         """Invalidate human approval on any application linked to a modified document."""
         # Find applications using this document that were previously approved
         stmt = select(JobApplication).where(
             JobApplication.user_id == user_id,
-            (JobApplication.resume_document_id == document_id) | (JobApplication.cover_letter_document_id == document_id),
+            (JobApplication.resume_document_id == document_id)
+            | (JobApplication.cover_letter_document_id == document_id),
             JobApplication.approval_status == "approved",
         )
         apps = (await session.execute(stmt)).scalars().all()
-        invalidated_ids: List[int] = []
+        invalidated_ids: list[int] = []
 
         for app in apps:
             app.approval_status = "invalidated"
@@ -271,16 +308,22 @@ class WorkflowService:
                     thread_id=app.workflow_thread_id,
                     node_name="approval_invalidation",
                     status="completed",
-                    details={"document_id": document_id, "new_version_id": new_version_id},
+                    details={
+                        "document_id": document_id,
+                        "new_version_id": new_version_id,
+                    },
                     error_message="Document edited after approval; re-review required",
-                    created_at=datetime.now(timezone.utc),
+                    created_at=datetime.now(UTC),
                 )
             )
             invalidated_ids.append(app.id)
 
         if invalidated_ids:
             await session.commit()
-            logger.info("Invalidated approval for applications %s due to document edit", invalidated_ids)
+            logger.info(
+                "Invalidated approval for applications %s due to document edit",
+                invalidated_ids,
+            )
 
         return invalidated_ids
 
@@ -288,12 +331,15 @@ class WorkflowService:
         self,
         session: AsyncSession,
         user_id: int,
-        status: Optional[str] = None,
-    ) -> List[JobApplication]:
+        status: str | None = None,
+    ) -> list[JobApplication]:
         """List user applications with optional status filter."""
         stmt = (
             select(JobApplication)
-            .options(selectinload(JobApplication.job), selectinload(JobApplication.execution_logs))
+            .options(
+                selectinload(JobApplication.job),
+                selectinload(JobApplication.execution_logs),
+            )
             .where(JobApplication.user_id == user_id)
             .order_by(JobApplication.updated_at.desc())
         )
@@ -307,12 +353,17 @@ class WorkflowService:
         session: AsyncSession,
         user_id: int,
         application_id: int,
-    ) -> Optional[JobApplication]:
+    ) -> JobApplication | None:
         """Get application detail verifying ownership."""
         stmt = (
             select(JobApplication)
-            .options(selectinload(JobApplication.job), selectinload(JobApplication.execution_logs))
-            .where(JobApplication.id == application_id, JobApplication.user_id == user_id)
+            .options(
+                selectinload(JobApplication.job),
+                selectinload(JobApplication.execution_logs),
+            )
+            .where(
+                JobApplication.id == application_id, JobApplication.user_id == user_id
+            )
         )
         res = await session.execute(stmt)
         return res.scalar_one_or_none()
@@ -322,7 +373,7 @@ class WorkflowService:
         session: AsyncSession,
         user_id: int,
         application_id: int,
-    ) -> List[WorkflowExecutionLog]:
+    ) -> list[WorkflowExecutionLog]:
         """Retrieve audit timeline for an application verifying ownership."""
         # Ownership check
         app = await self.get_application(session, user_id, application_id)

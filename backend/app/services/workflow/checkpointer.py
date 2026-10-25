@@ -1,7 +1,8 @@
 """PostgreSQL-backed durable checkpointer for LangGraph with fallback support."""
 
 import logging
-from typing import Any, Optional
+from typing import Any
+
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.checkpoint.memory import MemorySaver
 
@@ -9,7 +10,7 @@ from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-_global_checkpointer: Optional[BaseCheckpointSaver[Any]] = None
+_global_checkpointer: BaseCheckpointSaver[Any] | None = None
 
 
 def get_sync_checkpointer() -> BaseCheckpointSaver[Any]:
@@ -55,7 +56,9 @@ async def get_durable_checkpointer() -> BaseCheckpointSaver[Any]:
         return _global_checkpointer
 
 
-def reset_checkpointer_for_testing(custom_saver: Optional[BaseCheckpointSaver[Any]] = None) -> None:
+def reset_checkpointer_for_testing(
+    custom_saver: BaseCheckpointSaver[Any] | None = None,
+) -> None:
     """Utility to inject or reset the checkpointer for isolated tests."""
     global _global_checkpointer
     _global_checkpointer = custom_saver

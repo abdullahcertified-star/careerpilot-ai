@@ -1,8 +1,8 @@
 """Individual execution nodes for the Phase 6 LangGraph workflow."""
 
 import logging
-from datetime import datetime, timezone
-from typing import Any, Dict, Optional
+from datetime import UTC, datetime
+from typing import Any
 
 from langgraph.types import interrupt
 from sqlalchemy import select
@@ -12,7 +12,6 @@ from app.models.entities import (
     DocumentVersion,
     JobApplication,
     JobPosting,
-    User,
     WorkflowExecutionLog,
 )
 from app.services.documents.document_service import DocumentService
@@ -30,12 +29,12 @@ class UnauthorizedSubmissionError(Exception):
 
 
 async def _log_node_execution(
-    application_id: Optional[int],
+    application_id: int | None,
     thread_id: str,
     node_name: str,
     status: str,
-    details: Dict[str, Any],
-    error_message: Optional[str] = None,
+    details: dict[str, Any],
+    error_message: str | None = None,
     attempt: int = 1,
 ) -> None:
     """Record an immutable execution log entry with sensitive data redacted."""
@@ -49,26 +48,37 @@ async def _log_node_execution(
                 thread_id=thread_id,
                 node_name=node_name,
                 status=status,
-                details=sanitized_details if isinstance(sanitized_details, dict) else {"summary": str(sanitized_details)},
+                details=sanitized_details
+                if isinstance(sanitized_details, dict)
+                else {"summary": str(sanitized_details)},
                 error_message=error_message,
                 attempt_number=attempt,
-                created_at=datetime.now(timezone.utc),
+                created_at=datetime.now(UTC),
             )
             session.add(log)
             await session.commit()
     except Exception as exc:
-        logger.warning("Could not persist execution log for node %s: %s", node_name, exc)
+        logger.warning(
+            "Could not persist execution log for node %s: %s", node_name, exc
+        )
 
 
-async def discover_job_node(state: WorkflowState) -> Dict[str, Any]:
+async def discover_job_node(state: WorkflowState) -> dict[str, Any]:
     """Node 1: Discover or retrieve job details from URL or provider."""
     thread_id = state.get("thread_id", "")
     app_id = state.get("application_id")
     attempt = state.get("retry_count", 0) + 1
 
-    await _log_node_execution(app_id, thread_id, "discover_job", "started", {"input_url": state.get("raw_job_url")}, attempt=attempt)
+    await _log_node_execution(
+        app_id,
+        thread_id,
+        "discover_job",
+        "started",
+        {"input_url": state.get("raw_job_url")},
+        attempt=attempt,
+    )
 
-    job_data: Optional[Dict[str, Any]] = state.get("job_data")
+    job_data: dict[str, Any] | None = state.get("job_data")
     job_id = state.get("job_id")
     raw_url = state.get("raw_job_url")
 
@@ -110,9 +120,18 @@ async def discover_job_node(state: WorkflowState) -> Dict[str, Any]:
                 }
 
         if not job_data:
-            raise ValueError("No valid job input provided (missing job_id, URL, or provider details)")
+            raise ValueError(
+                "No valid job input provided (missing job_id, URL, or provider details)"
+            )
 
-        await _log_node_execution(app_id, thread_id, "discover_job", "completed", {"title": job_data.get("title")}, attempt=attempt)
+        await _log_node_execution(
+            app_id,
+            thread_id,
+            "discover_job",
+            "completed",
+            {"title": job_data.get("title")},
+            attempt=attempt,
+        )
         return {
             "job_data": job_data,
             "job_id": job_id,
@@ -122,40 +141,65 @@ async def discover_job_node(state: WorkflowState) -> Dict[str, Any]:
     except Exception as exc:
         err = f"Discovery failed: {str(exc)}"
         logger.error(err)
-        await _log_node_execution(app_id, thread_id, "discover_job", "failed", {}, error_message=err, attempt=attempt)
+        await _log_node_execution(
+            app_id,
+            thread_id,
+            "discover_job",
+            "failed",
+            {},
+            error_message=err,
+            attempt=attempt,
+        )
         return {"last_error": err, "status": "failed", "retry_count": attempt}
 
 
-async def normalize_job_node(state: WorkflowState) -> Dict[str, Any]:
+async def normalize_job_node(state: WorkflowState) -> dict[str, Any]:
     """Node 2: Normalize job details into standard format."""
     thread_id = state.get("thread_id", "")
     app_id = state.get("application_id")
     attempt = state.get("retry_count", 0) + 1
 
-    await _log_node_execution(app_id, thread_id, "normalize_job", "started", {}, attempt=attempt)
+    await _log_node_execution(
+        app_id, thread_id, "normalize_job", "started", {}, attempt=attempt
+    )
     job_data = dict(state.get("job_data") or {})
 
     # Ensure required normalized attributes
     job_data["title"] = str(job_data.get("title", "")).strip() or "Untitled Position"
-    job_data["company"] = str(job_data.get("company", "")).strip() or "Unknown Organization"
-    job_data["work_mode"] = str(job_data.get("work_mode", "unspecified")).lower().strip()
-    job_data["employment_type"] = str(job_data.get("employment_type", "full_time")).lower().strip()
+    job_data["company"] = (
+        str(job_data.get("company", "")).strip() or "Unknown Organization"
+    )
+    job_data["work_mode"] = (
+        str(job_data.get("work_mode", "unspecified")).lower().strip()
+    )
+    job_data["employment_type"] = (
+        str(job_data.get("employment_type", "full_time")).lower().strip()
+    )
     job_data["description"] = str(job_data.get("description", "")).strip()
 
-    await _log_node_execution(app_id, thread_id, "normalize_job", "completed", {"normalized_title": job_data["title"]}, attempt=attempt)
+    await _log_node_execution(
+        app_id,
+        thread_id,
+        "normalize_job",
+        "completed",
+        {"normalized_title": job_data["title"]},
+        attempt=attempt,
+    )
     return {
         "job_data": job_data,
         "status": "normalized",
     }
 
 
-async def deduplicate_job_node(state: WorkflowState) -> Dict[str, Any]:
+async def deduplicate_job_node(state: WorkflowState) -> dict[str, Any]:
     """Node 3: Check database for existing job posting and attach or persist idempotently."""
     thread_id = state.get("thread_id", "")
     app_id = state.get("application_id")
     attempt = state.get("retry_count", 0) + 1
 
-    await _log_node_execution(app_id, thread_id, "deduplicate_job", "started", {}, attempt=attempt)
+    await _log_node_execution(
+        app_id, thread_id, "deduplicate_job", "started", {}, attempt=attempt
+    )
     job_data = state.get("job_data") or {}
     job_id = state.get("job_id")
     is_duplicate = False
@@ -177,7 +221,10 @@ async def deduplicate_job_node(state: WorkflowState) -> Dict[str, Any]:
 
                 stmt = select(JobPosting).where(
                     (JobPosting.canonical_url == canonical_url)
-                    | ((JobPosting.source == source) & (JobPosting.source_id == source_id))
+                    | (
+                        (JobPosting.source == source)
+                        & (JobPosting.source_id == source_id)
+                    )
                 )
                 res = await session.execute(stmt)
                 db_job = res.scalar_one_or_none()
@@ -188,15 +235,17 @@ async def deduplicate_job_node(state: WorkflowState) -> Dict[str, Any]:
                 else:
                     new_job = JobPosting(
                         source=source,
-                        source_id=source_id or f"imp-{datetime.now(timezone.utc).timestamp()}",
-                        canonical_url=canonical_url or f"https://example.com/jobs/{source_id}",
+                        source_id=source_id
+                        or f"imp-{datetime.now(UTC).timestamp()}",
+                        canonical_url=canonical_url
+                        or f"https://example.com/jobs/{source_id}",
                         title=job_data.get("title", "Position"),
                         company=job_data.get("company", "Company"),
                         description=job_data.get("description", ""),
                         location=job_data.get("location"),
                         work_mode=job_data.get("work_mode", "unspecified"),
                         employment_type=job_data.get("employment_type", "full_time"),
-                        retrieved_at=datetime.now(timezone.utc),
+                        retrieved_at=datetime.now(UTC),
                         is_active=True,
                     )
                     session.add(new_job)
@@ -213,7 +262,14 @@ async def deduplicate_job_node(state: WorkflowState) -> Dict[str, Any]:
                     app.job_id = job_id
                     await session.commit()
 
-        await _log_node_execution(app_id, thread_id, "deduplicate_job", "completed", {"job_id": job_id, "is_duplicate": is_duplicate}, attempt=attempt)
+        await _log_node_execution(
+            app_id,
+            thread_id,
+            "deduplicate_job",
+            "completed",
+            {"job_id": job_id, "is_duplicate": is_duplicate},
+            attempt=attempt,
+        )
         return {
             "job_id": job_id,
             "is_duplicate": is_duplicate,
@@ -222,11 +278,19 @@ async def deduplicate_job_node(state: WorkflowState) -> Dict[str, Any]:
     except Exception as exc:
         err = f"Deduplication failed: {str(exc)}"
         logger.error(err)
-        await _log_node_execution(app_id, thread_id, "deduplicate_job", "failed", {}, error_message=err, attempt=attempt)
+        await _log_node_execution(
+            app_id,
+            thread_id,
+            "deduplicate_job",
+            "failed",
+            {},
+            error_message=err,
+            attempt=attempt,
+        )
         return {"last_error": err, "status": "failed", "retry_count": attempt}
 
 
-async def match_candidate_node(state: WorkflowState) -> Dict[str, Any]:
+async def match_candidate_node(state: WorkflowState) -> dict[str, Any]:
     """Node 4: Deterministic candidate matching against job posting."""
     thread_id = state.get("thread_id", "")
     app_id = state.get("application_id")
@@ -234,12 +298,21 @@ async def match_candidate_node(state: WorkflowState) -> Dict[str, Any]:
     job_id = state.get("job_id")
     attempt = state.get("retry_count", 0) + 1
 
-    await _log_node_execution(app_id, thread_id, "match_candidate", "started", {"user_id": user_id, "job_id": job_id}, attempt=attempt)
+    await _log_node_execution(
+        app_id,
+        thread_id,
+        "match_candidate",
+        "started",
+        {"user_id": user_id, "job_id": job_id},
+        attempt=attempt,
+    )
 
     try:
         async with async_session_factory() as session:
             # Load candidate facts using DocumentService utility
-            candidate_user = await DocumentService.load_candidate_facts(session, user_id or 0)
+            candidate_user = await DocumentService.load_candidate_facts(
+                session, user_id or 0
+            )
 
             # Load job posting
             job_stmt = select(JobPosting).where(JobPosting.id == job_id)
@@ -257,7 +330,9 @@ async def match_candidate_node(state: WorkflowState) -> Dict[str, Any]:
             match_details = {
                 "score": score,
                 "explanation": evaluation.explanation,
-                "matched_skills": [m["skill"] for m in evaluation.matched_skills if "skill" in m],
+                "matched_skills": [
+                    m["skill"] for m in evaluation.matched_skills if "skill" in m
+                ],
                 "missing_skills": evaluation.missing_skills,
             }
 
@@ -269,7 +344,14 @@ async def match_candidate_node(state: WorkflowState) -> Dict[str, Any]:
                     app.status = "matched"
                     await session.commit()
 
-        await _log_node_execution(app_id, thread_id, "match_candidate", "completed", match_details, attempt=attempt)
+        await _log_node_execution(
+            app_id,
+            thread_id,
+            "match_candidate",
+            "completed",
+            match_details,
+            attempt=attempt,
+        )
         return {
             "match_score": score,
             "match_details": match_details,
@@ -279,11 +361,19 @@ async def match_candidate_node(state: WorkflowState) -> Dict[str, Any]:
     except Exception as exc:
         err = f"Matching failed: {str(exc)}"
         logger.error(err)
-        await _log_node_execution(app_id, thread_id, "match_candidate", "failed", {}, error_message=err, attempt=attempt)
+        await _log_node_execution(
+            app_id,
+            thread_id,
+            "match_candidate",
+            "failed",
+            {},
+            error_message=err,
+            attempt=attempt,
+        )
         return {"last_error": err, "status": "failed", "retry_count": attempt}
 
 
-async def generate_documents_node(state: WorkflowState) -> Dict[str, Any]:
+async def generate_documents_node(state: WorkflowState) -> dict[str, Any]:
     """Node 5: Generate tailored resume and cover letter strictly grounded in verified facts."""
     thread_id = state.get("thread_id", "")
     app_id = state.get("application_id")
@@ -292,7 +382,14 @@ async def generate_documents_node(state: WorkflowState) -> Dict[str, Any]:
     template_id = state.get("template_id", "modern")
     attempt = state.get("retry_count", 0) + 1
 
-    await _log_node_execution(app_id, thread_id, "generate_documents", "started", {"template": template_id}, attempt=attempt)
+    await _log_node_execution(
+        app_id,
+        thread_id,
+        "generate_documents",
+        "started",
+        {"template": template_id},
+        attempt=attempt,
+    )
 
     try:
         async with async_session_factory() as session:
@@ -351,17 +448,27 @@ async def generate_documents_node(state: WorkflowState) -> Dict[str, Any]:
     except Exception as exc:
         err = f"Document generation failed: {str(exc)}"
         logger.error(err)
-        await _log_node_execution(app_id, thread_id, "generate_documents", "failed", {}, error_message=err, attempt=attempt)
+        await _log_node_execution(
+            app_id,
+            thread_id,
+            "generate_documents",
+            "failed",
+            {},
+            error_message=err,
+            attempt=attempt,
+        )
         return {"last_error": err, "status": "failed", "retry_count": attempt}
 
 
-async def validate_quality_node(state: WorkflowState) -> Dict[str, Any]:
+async def validate_quality_node(state: WorkflowState) -> dict[str, Any]:
     """Node 6: Run automated factual consistency check identifying unverified claims."""
     thread_id = state.get("thread_id", "")
     app_id = state.get("application_id")
     attempt = state.get("retry_count", 0) + 1
 
-    await _log_node_execution(app_id, thread_id, "validate_quality", "started", {}, attempt=attempt)
+    await _log_node_execution(
+        app_id, thread_id, "validate_quality", "started", {}, attempt=attempt
+    )
 
     try:
         resume_v_id = state.get("resume_version_id")
@@ -369,7 +476,9 @@ async def validate_quality_node(state: WorkflowState) -> Dict[str, Any]:
 
         async with async_session_factory() as session:
             # Load candidate verified facts
-            candidate_user = await DocumentService.load_candidate_facts(session, user_id)
+            candidate_user = await DocumentService.load_candidate_facts(
+                session, user_id
+            )
 
             # Load generated resume version
             ver_stmt = select(DocumentVersion).where(DocumentVersion.id == resume_v_id)
@@ -377,14 +486,18 @@ async def validate_quality_node(state: WorkflowState) -> Dict[str, Any]:
             v = ver_res.scalar_one_or_none()
 
             if not candidate_user or not v:
-                raise ValueError("Candidate user or document version not found for validation")
+                raise ValueError(
+                    "Candidate user or document version not found for validation"
+                )
 
             from app.services.documents.schemas import StructuredResume
 
             s_resume = StructuredResume(**v.structured_data)
             report = FactualConsistencyChecker.verify_resume(s_resume, candidate_user)
 
-            validation_passed = report.is_clean and report.factual_confidence_score >= 80.0
+            validation_passed = (
+                report.is_clean and report.factual_confidence_score >= 80.0
+            )
             quality_report = report.model_dump()
 
         await _log_node_execution(
@@ -403,17 +516,27 @@ async def validate_quality_node(state: WorkflowState) -> Dict[str, Any]:
     except Exception as exc:
         err = f"Quality validation failed: {str(exc)}"
         logger.error(err)
-        await _log_node_execution(app_id, thread_id, "validate_quality", "failed", {}, error_message=err, attempt=attempt)
+        await _log_node_execution(
+            app_id,
+            thread_id,
+            "validate_quality",
+            "failed",
+            {},
+            error_message=err,
+            attempt=attempt,
+        )
         return {"last_error": err, "status": "failed", "retry_count": attempt}
 
 
-async def prepare_application_node(state: WorkflowState) -> Dict[str, Any]:
+async def prepare_application_node(state: WorkflowState) -> dict[str, Any]:
     """Node 7: Prepare application packet and transition to awaiting approval."""
     thread_id = state.get("thread_id", "")
     app_id = state.get("application_id")
     attempt = state.get("retry_count", 0) + 1
 
-    await _log_node_execution(app_id, thread_id, "prepare_application", "started", {}, attempt=attempt)
+    await _log_node_execution(
+        app_id, thread_id, "prepare_application", "started", {}, attempt=attempt
+    )
 
     try:
         job_data = state.get("job_data") or {}
@@ -424,7 +547,7 @@ async def prepare_application_node(state: WorkflowState) -> Dict[str, Any]:
             "resume_version_id": state.get("resume_version_id"),
             "cover_letter_version_id": state.get("cover_letter_version_id"),
             "submission_mode": state.get("submission_mode", "manual_handoff"),
-            "prepared_at": datetime.now(timezone.utc).isoformat(),
+            "prepared_at": datetime.now(UTC).isoformat(),
         }
 
         async with async_session_factory() as session:
@@ -438,7 +561,14 @@ async def prepare_application_node(state: WorkflowState) -> Dict[str, Any]:
                     app.approval_status = "pending"
                     await session.commit()
 
-        await _log_node_execution(app_id, thread_id, "prepare_application", "completed", payload, attempt=attempt)
+        await _log_node_execution(
+            app_id,
+            thread_id,
+            "prepare_application",
+            "completed",
+            payload,
+            attempt=attempt,
+        )
         return {
             "application_payload": payload,
             "status": "awaiting_approval",
@@ -446,11 +576,19 @@ async def prepare_application_node(state: WorkflowState) -> Dict[str, Any]:
     except Exception as exc:
         err = f"Application preparation failed: {str(exc)}"
         logger.error(err)
-        await _log_node_execution(app_id, thread_id, "prepare_application", "failed", {}, error_message=err, attempt=attempt)
+        await _log_node_execution(
+            app_id,
+            thread_id,
+            "prepare_application",
+            "failed",
+            {},
+            error_message=err,
+            attempt=attempt,
+        )
         return {"last_error": err, "status": "failed", "retry_count": attempt}
 
 
-async def human_approval_node(state: WorkflowState) -> Dict[str, Any]:
+async def human_approval_node(state: WorkflowState) -> dict[str, Any]:
     """Node 8: Human approval interrupt gate. Pauses execution until explicit review."""
     thread_id = state.get("thread_id", "")
     app_id = state.get("application_id")
@@ -490,7 +628,7 @@ async def human_approval_node(state: WorkflowState) -> Dict[str, Any]:
                 app.status = status_str
                 app.approval_notes = state.get("approval_notes")
                 if human_approved:
-                    app.approved_at = datetime.now(timezone.utc)
+                    app.approved_at = datetime.now(UTC)
                 await session.commit()
 
     await _log_node_execution(
@@ -506,7 +644,7 @@ async def human_approval_node(state: WorkflowState) -> Dict[str, Any]:
     }
 
 
-async def submit_or_handoff_node(state: WorkflowState) -> Dict[str, Any]:
+async def submit_or_handoff_node(state: WorkflowState) -> dict[str, Any]:
     """Node 9: Strictly authorized submission or manual handoff packet generation."""
     thread_id = state.get("thread_id", "")
     app_id = state.get("application_id")
@@ -514,7 +652,9 @@ async def submit_or_handoff_node(state: WorkflowState) -> Dict[str, Any]:
 
     # CRITICAL SECURITY GUARD: Verify human approval in both state and persistent database
     if not state.get("human_approved"):
-        raise UnauthorizedSubmissionError("Cannot submit application: human approval is not granted.")
+        raise UnauthorizedSubmissionError(
+            "Cannot submit application: human approval is not granted."
+        )
 
     async with async_session_factory() as session:
         if app_id:
@@ -526,12 +666,14 @@ async def submit_or_handoff_node(state: WorkflowState) -> Dict[str, Any]:
                     f"Database approval check failed: status is '{app.approval_status if app else 'none'}'"
                 )
 
-    await _log_node_execution(app_id, thread_id, "submit_or_handoff", "started", {}, attempt=attempt)
+    await _log_node_execution(
+        app_id, thread_id, "submit_or_handoff", "started", {}, attempt=attempt
+    )
 
     submission_mode = state.get("submission_mode", "manual_handoff")
     handoff_packet = {
         "submission_mode": submission_mode,
-        "submitted_at": datetime.now(timezone.utc).isoformat(),
+        "submitted_at": datetime.now(UTC).isoformat(),
         "handoff_instructions": "Review generated documents, verify company portal link, and submit.",
         "verified_approval": True,
     }
@@ -542,25 +684,40 @@ async def submit_or_handoff_node(state: WorkflowState) -> Dict[str, Any]:
             app_res = await session.execute(app_stmt)
             app = app_res.scalar_one_or_none()
             if app:
-                app.status = "submitted" if submission_mode == "automated_api" else "manual_handoff"
+                app.status = (
+                    "submitted"
+                    if submission_mode == "automated_api"
+                    else "manual_handoff"
+                )
                 await session.commit()
 
-    await _log_node_execution(app_id, thread_id, "submit_or_handoff", "completed", handoff_packet, attempt=attempt)
+    await _log_node_execution(
+        app_id,
+        thread_id,
+        "submit_or_handoff",
+        "completed",
+        handoff_packet,
+        attempt=attempt,
+    )
     return {
-        "status": "submitted" if submission_mode == "automated_api" else "manual_handoff",
+        "status": "submitted"
+        if submission_mode == "automated_api"
+        else "manual_handoff",
         "tracking_metadata": handoff_packet,
     }
 
 
-async def tracking_node(state: WorkflowState) -> Dict[str, Any]:
+async def tracking_node(state: WorkflowState) -> dict[str, Any]:
     """Node 10: Final tracking, confirmation reference generation, and persistent status."""
     thread_id = state.get("thread_id", "")
     app_id = state.get("application_id")
 
-    tracking_ref = f"CP-APP-{app_id or '0'}-{int(datetime.now(timezone.utc).timestamp())}"
+    tracking_ref = (
+        f"CP-APP-{app_id or '0'}-{int(datetime.now(UTC).timestamp())}"
+    )
     final_tracking = dict(state.get("tracking_metadata") or {})
     final_tracking["confirmation_reference"] = tracking_ref
-    final_tracking["completed_at"] = datetime.now(timezone.utc).isoformat()
+    final_tracking["completed_at"] = datetime.now(UTC).isoformat()
     final_tracking["workflow_completed"] = True
 
     async with async_session_factory() as session:
@@ -572,7 +729,9 @@ async def tracking_node(state: WorkflowState) -> Dict[str, Any]:
                 app.tracking_metadata = final_tracking
                 await session.commit()
 
-    await _log_node_execution(app_id, thread_id, "tracking", "completed", {"ref": tracking_ref})
+    await _log_node_execution(
+        app_id, thread_id, "tracking", "completed", {"ref": tracking_ref}
+    )
     return {
         "status": "completed",
         "tracking_metadata": final_tracking,
