@@ -21,14 +21,34 @@ class Base(DeclarativeBase):
     pass
 
 
+def normalize_database_url(url: str) -> str:
+    """Normalize database URL for async drivers (SQLite, PostgreSQL, or Neon)."""
+    import re
+    if url.startswith("sqlite://") and not url.startswith("sqlite+aiosqlite://"):
+        return url.replace("sqlite://", "sqlite+aiosqlite://", 1)
+    if url.startswith("postgres://"):
+        url = url.replace("postgres://", "postgresql+asyncpg://", 1)
+    elif url.startswith("postgresql://") and not url.startswith("postgresql+"):
+        url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+
+    # asyncpg does not support channel_binding or sslmode parameters passed directly in query
+    if "asyncpg" in url:
+        url = re.sub(r"[?&]channel_binding=[^&]+", "", url)
+        url = url.replace("sslmode=", "ssl=")
+        # Fix query string if channel_binding was first param: url?&ssl=require -> url?ssl=require
+        url = url.replace("?&", "?")
+        url = url.rstrip("?&")
+    return url
+
+
 # Normalize database URL
-db_url = settings.DATABASE_URL
-if db_url.startswith("sqlite://") and not db_url.startswith("sqlite+aiosqlite://"):
-    db_url = db_url.replace("sqlite://", "sqlite+aiosqlite://", 1)
+db_url = normalize_database_url(settings.DATABASE_URL)
 
 engine_kwargs: dict[str, Any] = {"echo": False, "future": True}
 if "sqlite" in db_url:
     engine_kwargs["connect_args"] = {"check_same_thread": False}
+else:
+    engine_kwargs["pool_pre_ping"] = True
 
 engine: AsyncEngine = create_async_engine(db_url, **engine_kwargs)
 

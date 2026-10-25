@@ -15,7 +15,7 @@ if backend_dir not in sys.path:
     sys.path.insert(0, backend_dir)
 
 from app.core.config import settings
-from app.core.database import Base
+from app.core.database import Base, normalize_database_url
 import app.models  # noqa: F401
 
 config = context.config
@@ -26,9 +26,7 @@ if config.config_file_name is not None:
 target_metadata = Base.metadata
 
 # Normalize URL from settings
-db_url = settings.DATABASE_URL
-if db_url.startswith("sqlite://") and not db_url.startswith("sqlite+aiosqlite://"):
-    db_url = db_url.replace("sqlite://", "sqlite+aiosqlite://", 1)
+db_url = normalize_database_url(settings.DATABASE_URL)
 config.set_main_option("sqlalchemy.url", db_url)
 
 
