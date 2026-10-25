@@ -800,11 +800,11 @@ async def test_email_notifications_require_credentials_and_consent(candidate_ali
 
     # 3. Consented and configured credentials -> dispatches successfully
     with patch("app.services.scheduler.notification_service.settings") as mock_settings:
-        mock_settings.SMTP_HOST = "smtp.mailgun.org"
+        mock_settings.SMTP_HOST = "smtp.example.com"
         mock_settings.SMTP_PORT = 587
-        mock_settings.SMTP_USER = "postmaster@mailgun.org"
-        mock_settings.SMTP_PASSWORD = "secret_password"
-        mock_settings.EMAILS_FROM_EMAIL = "alerts@careerpilot.ai"
+        mock_settings.SMTP_USER = "test-user@example.com"
+        mock_settings.SMTP_PASSWORD = "mock-test-auth-token"
+        mock_settings.EMAILS_FROM_EMAIL = "alerts@example.com"
 
         dispatched_ready = await notification_service.dispatch_email_if_permitted(
             user=candidate_alice,

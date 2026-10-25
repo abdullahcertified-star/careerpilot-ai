@@ -49,7 +49,7 @@ FRONTEND_URL=https://app.careerpilot.example.com
 # Security & Session Authentication
 # =========================================================================
 # Generate with: openssl rand -hex 32
-SECRET_KEY=e4c8f1a23b9d7e50123456789abcdef0123456789abcdef0123456789abcdef0
+SECRET_KEY=<REPLACE_WITH_YOUR_STRONG_SECRET_KEY>
 ACCESS_TOKEN_EXPIRE_MINUTES=1440
 SESSION_MAX_AGE_SECONDS=604800
 SESSION_COOKIE_NAME=careerpilot_session
@@ -58,39 +58,39 @@ SESSION_COOKIE_NAME=careerpilot_session
 # Database (PostgreSQL 16+)
 # =========================================================================
 POSTGRES_USER=careerpilot_app
-POSTGRES_PASSWORD=your_ultra_secure_db_password
+POSTGRES_PASSWORD=<REPLACE_WITH_POSTGRES_PASSWORD>
 POSTGRES_HOST=db.internal.example.com
 POSTGRES_PORT=5432
 POSTGRES_DB=careerpilot_prod
 
 # Async connection string used by FastAPI & SQLAlchemy
-DATABASE_URL=postgresql+asyncpg://careerpilot_app:your_ultra_secure_db_password@db.internal.example.com:5432/careerpilot_prod
+DATABASE_URL=postgresql+asyncpg://careerpilot_app:<POSTGRES_PASSWORD>@db.internal.example.com:5432/careerpilot_prod
 
 # Sync connection string used by LangGraph checkpointer & migrations
-CHECKPOINTER_POSTGRES_URI=postgresql://careerpilot_app:your_ultra_secure_db_password@db.internal.example.com:5432/careerpilot_prod
+CHECKPOINTER_POSTGRES_URI=postgresql://careerpilot_app:<POSTGRES_PASSWORD>@db.internal.example.com:5432/careerpilot_prod
 
 # =========================================================================
 # Distributed Task Queue & Cache (Redis 7+)
 # =========================================================================
 REDIS_HOST=redis.internal.example.com
 REDIS_PORT=6379
-REDIS_PASSWORD=your_ultra_secure_redis_password
+REDIS_PASSWORD=<REPLACE_WITH_REDIS_PASSWORD>
 REDIS_DB=0
-REDIS_URL=redis://:your_ultra_secure_redis_password@redis.internal.example.com:6379/0
+REDIS_URL=redis://:<REDIS_PASSWORD>@redis.internal.example.com:6379/0
 
 # =========================================================================
 # AI & LLM Providers (LangChain / LangGraph)
 # =========================================================================
-OPENAI_API_KEY=sk-proj-your_actual_openai_key
-ANTHROPIC_API_KEY=sk-ant-your_actual_anthropic_key
-GEMINI_API_KEY=AIzaSy-your_actual_gemini_key
+OPENAI_API_KEY=<REPLACE_WITH_OPENAI_API_KEY>
+ANTHROPIC_API_KEY=<REPLACE_WITH_ANTHROPIC_API_KEY>
+GEMINI_API_KEY=<REPLACE_WITH_GEMINI_API_KEY>
 PRIMARY_LLM_PROVIDER=openai
 FALLBACK_LLM_PROVIDER=anthropic
 
 # LangSmith Observability (PII & Secrets Automatically Redacted)
 LANGSMITH_TRACING=true
 LANGSMITH_ENDPOINT=https://api.smith.langchain.com
-LANGSMITH_API_KEY=lsv2_pt_your_actual_langsmith_key
+LANGSMITH_API_KEY=<REPLACE_WITH_LANGSMITH_API_KEY>
 LANGSMITH_PROJECT=careerpilot-ai-prod
 
 # =========================================================================
